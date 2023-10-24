@@ -4,14 +4,14 @@ You can find my Skript projects here.
 # My projects
 ## CoolExplosions
 This is a highly configurable script for making Minecraft explosions better. It mostly uses *falling blocks* to make the effects.
-### Explosion Types
+#### Explosion Types
 - `burst:` The blocks burst away from the center of the explosion.
 - `burst_random:` The blocks burst away in random order.
 - `opposite:` The blocks burst away in the opposite direction they're supposed to.
 - `upwards:` The blocks only launch upwards (at the same time), then fall back to the ground.
 - `upwards_random:` The blocks launch upwards in random order.
 - `none:` CoolExplosions is turned off.
-### Available Settings
+#### Available Settings
 - Explosion Force
 - Additional force upwards
 - Extra Damage to nearby entities
