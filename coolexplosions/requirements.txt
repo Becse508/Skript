@@ -1,0 +1,4 @@
+Plugins:
+  - Skript
+  - SkQuery
+  - SkBee

@@ -1,0 +1,166 @@
+on load:
+    if {coolexp::type} isn't set:
+        set {coolexp::type} to "burst"
+    if {coolexp::force} isn't set:
+        set {coolexp::force} to 2
+    if {coolexp::force_upwards} isn't set:
+        set {coolexp::force_upwards} to 0.8
+    if {coolexp::extra_damage} isn't set:
+        set {coolexp::extra_damage} to 0
+    if {coolexp::destroy_chance} isn't set:
+        set {coolexp::destroy_chance} to 0.25
+    
+    broadcast "§c§lCoolExplosions §aLoaded!%nl%§a  - Explosion Type: §6%{coolexp::type}%%nl%§a  - Explosion Force: §6%{coolexp::force}%%nl%§a  - Upwards Force: §6%{coolexp::force_upwards}%%nl%§a  - Extra Explosion Damage: §6%{coolexp::extra_damage}%%nl%§a  - Destroy Chance: §6%{coolexp::destroy_chance}%"
+    
+
+
+on explosion prime:
+    set {exp_power::%uuid of event-entity%} to yield of explosion
+
+
+command /coolexplosion <string> [<text>]:
+    aliases: /coolexp
+    permission: coolexp.admin
+    trigger:
+        if arg-1 == "help":
+            send "§7------§c§lCoolExplosions §aHelp§7------%nl%§7/coolexp type §8<type>§7: §eSets the type of the explosion.%nl%    §8- ""burst"": §7The blocks burst away from the center of the explosion.%nl%    §8- ""burst_random"": §7The blocks burst away in random order.%nl%    §8- ""opposite"": §7The blocks burst away in the opposite direction the're supposed to.%nl%    §8- ""upwards"": §7The blocks only launch upwards (at the same time), then fall back to the ground.%nl%    §8- ""upwards_random"": §7The blocks launch upwards in random order.%nl%    §8- ""none"": §7CoolExplosions is §cturned off§7.%nl%%nl%§7/coolexp force §8<number>§7: §eSets the force of the explosion.%nl%%nl%§7/coolexp force_upwards §8<number>§7: §eSets an additional upwards force for the explosion.%nl%%nl%§7/coolexp extra_damage §8<number>§7: §eSets an additional damage that is dealt to the entities in the range of the explosion.%nl%%nl%§7/coolexp destroy_chance §8<number>§7: §eSets the chance of blocks destroying (and dropping items) instead of spawning a falling block.%nl%    §8- The number must be between §60 §8and §61§8."
+            stop trigger
+
+        else if arg-1 == "info":
+            send "§c§lCoolExplosions §aLoaded!%nl%§a  - Explosion Type: §6%{coolexp::type}%%nl%§a  - Explosion Force: §6%{coolexp::force}%%nl%§a  - Upwards Force: §6%{coolexp::force_upwards}%%nl%§a  - Extra Explosion Damage: §6%{coolexp::extra_damage}%%nl%§a  - Destroy Chance: §6%{coolexp::destroy_chance}%"
+            stop trigger
+
+        else if arg-1 == "type":
+            if arg-2 != "burst" or "burst_random" or "upwards" or "upwards_random" or "none" or "opposite":
+                send "§cThe type of explosion can only be §6""burst"" §c, §6""upwards"" §c, §6""opposite"" §cor §6""none""§c!"
+                stop trigger
+
+            set {_arg1} to "§6Type§a"
+            set {coolexp::type} to arg-2
+
+        else if arg-1 == "force":
+            set {_arg1} to "§6Force§a"
+            set {coolexp::force} to arg-2 parsed as number
+
+        else if arg-1 == "force_upwards":
+            set {_arg1} to "§6Upwards Force§a"
+            set {coolexp::force_upwards} to arg-2 parsed as number
+
+        else if arg-1 == "extra_damage":
+            set {_arg1} to "§6Extra Damage§a"
+            set {coolexp::extra_damage} to arg-2 parsed as number
+
+        else if arg-1 == "destroy_chance":
+            set {_arg1} to "§6Extra Damage§a"
+            set {coolexp::destroy_chance} to arg-2 parsed as number
+        else:
+            send "§7------§c§lCoolExplosions §aHelp§7------%nl%§7/coolexp type §8<type>§7: §eSets the type of the explosion.%nl%    §8- ""burst"": §7The blocks burst away from the center of the explosion.%nl%    §8- ""upwards"": §7The blocks only launch upwards, then fall back to the ground.%nl%    §8- ""none"": §7CoolExplosions is §cturned off§7.%nl%%nl%§7/coolexp force §8<number>§7: §eSets the force of the explosion.%nl%%nl%§7/coolexp force_upwards §8<number>§7: §eSets an additional upwards force for the explosion.%nl%%nl%§7/coolexp extra_damage §8<number>§7: §eSets an additional damage that is dealt to the entities in the range of the explosion.%nl%%nl%§7/coolexp destroy_chance §8<number>§7: §eSets the chance of blocks destroying (and dropping items) instead of spawning a falling block.%nl%    §8- The number must be between §60 §8and §61§8."
+            stop trigger
+
+        send "§aSuccessfully set the %{_arg1}% of explosions to §6%arg-2%§a!"
+
+
+on tab complete of "/coolexplosion" or "/coolexp":
+    set tab completions for position 1 to "info", "help", "type", "force", "force_upwards", "extra_damage" and "destroy_chance"
+    if tab arg-1 = "type":
+        set tab completions for position 2 to "burst", "burst_random", "opposite" and "upwards", "upwards_random", "none"
+    else:
+        set tab completions for position 2 to {coolexp::%tab arg-1%}
+
+
+
+
+on explosion:
+    if {coolexp::type} = "burst":
+        cancel event
+        create a fake explosion at event-location
+        loop exploded blocks:
+            if loop-block is tnt:
+                spawn primed tnt at location of loop-block
+                set {_falling_b} to 1
+            else if loop-block is not short grass, tall grass or snow or bedrock or obsidian or crying obsidian or barrier or structure block:
+                chance of 1 - {coolexp::destroy_chance}:
+                    spawn falling block of loop-block at location of loop-block
+                    set {_falling_b} to 1
+            
+            if loop-block is bedrock or obsidian or crying obsidian or barrier or structure block:
+                continue
+            
+            set loop-block to air
+            drop (drops of loop-block with diamond pickaxe) if {_falling_b} isn't set
+
+            push last spawned entity direction from event-location to last spawned entity with force {coolexp::force} * {exp_power::%uuid of event-entity%}/10 if {coolexp::force} != 0
+            push last spawned entity upwards with force {coolexp::force_upwards} * {exp_power::%uuid of event-entity%}/10 if {coolexp::force_upwards} != 0
+        
+        loop all entities in radius {exp_power::%uuid of event-entity%} around event-location:
+            if type of loop-value is not falling block:
+                push loop-value direction from event-location to loop-value with force {coolexp::force} * {exp_power::%uuid of event-entity%}/10 *2 if {coolexp::force} != 0
+                push loop-value upwards with force {coolexp::force_upwards} * {exp_power::%uuid of event-entity%}/10 *2 if {coolexp::force_upwards} != 0
+                damage loop-value by {coolexp::extra_damage} * {exp_power::%uuid of event-entity%}/10
+    
+    else if {coolexp::type} = "burst_random":
+        cancel event
+        create a fake explosion at event-location
+        loop exploded blocks:
+            if loop-block is tnt:
+                spawn primed tnt at location of loop-block
+                set {_falling_b} to 1
+            else if loop-block is not short grass, tall grass or snow or bedrock or obsidian or crying obsidian or barrier or structure block:
+                chance of 1 - {coolexp::destroy_chance}:
+                    spawn falling block of loop-block at location of loop-block
+                    set {_falling_b} to 1
+            
+            if loop-block is bedrock or obsidian or crying obsidian or barrier or structure block:
+                continue
+            
+            set loop-block to air
+            drop (drops of loop-block with diamond pickaxe) if {_falling_b} isn't set
+
+            push last spawned entity direction from event-location to last spawned entity with force {coolexp::force} * {exp_power::%uuid of event-entity%}/10 if {coolexp::force} != 0
+            push last spawned entity upwards with force {coolexp::force_upwards} * {exp_power::%uuid of event-entity%}/10 if {coolexp::force_upwards} != 0
+
+            wait 1 tick
+                
+    if {coolexp::type} = "opposite":
+        cancel event
+        create a fake explosion at event-location
+        loop exploded blocks:
+            if loop-block is tnt:
+                spawn primed tnt at location of loop-block
+                set {_falling_b} to 1
+            else if loop-block is not short grass, tall grass or snow or bedrock or obsidian or crying obsidian or barrier or structure block or structure void:
+                chance of 1 - {coolexp::destroy_chance}:
+                    spawn falling block of loop-block at location of loop-block
+                    set {_falling_b} to 1
+            
+            if loop-block is bedrock or obsidian or crying obsidian or barrier or structure block:
+                continue
+            
+            set loop-block to air
+            drop (drops of loop-block with diamond pickaxe) if {_falling_b} isn't set
+
+            push last spawned entity direction from last spawned entity to event-location with force {coolexp::force} * {exp_power::%uuid of event-entity%}/10 if {coolexp::force} != 0
+            push last spawned entity upwards with force {coolexp::force_upwards} * {exp_power::%uuid of event-entity%}/10 if {coolexp::force_upwards} != 0
+        
+        loop all entities in radius {exp_power::%uuid of event-entity%} around event-location:
+            if type of loop-value is not falling block:
+                push loop-value direction from loop-value to event-location with force {coolexp::force} * {exp_power::%uuid of event-entity%}/10 *2 if {coolexp::force} != 0
+                push loop-value upwards with force {coolexp::force_upwards} * {exp_power::%uuid of event-entity%}/10 *2 if {coolexp::force_upwards} != 0
+                damage loop-value by {coolexp::extra_damage} * {exp_power::%uuid of event-entity%}/10
+
+    else if {coolexp::type} = "upwards_random":
+        cancel event
+        create a fake explosion at event-location
+        loop exploded blocks:
+            spawn falling block of loop-block at location of loop-block
+            set loop-block to air
+            push last spawned entity upwards with force {coolexp::force_upwards} * {exp_power::%uuid of event-entity%}/10 if {coolexp::force_upwards} != 0
+            wait 1 tick
+
+    else if {coolexp::type} = "upwards":
+        cancel event
+        create a fake explosion at event-location
+        loop exploded blocks:
+            spawn falling block of loop-block at location of loop-block
+            set loop-block to air
+            push last spawned entity upwards with force {coolexp::force_upwards} * {exp_power::%uuid of event-entity%}/10 if {coolexp::force_upwards} != 0
